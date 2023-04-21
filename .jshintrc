@@ -1,0 +1,5 @@
+{
+    "esversion": 8,  // 声明代码中使用的ECMAScript版本
+    "browser": true  // 声明代码是在浏览器环境中运行
+  }
+  

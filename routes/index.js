@@ -1,14 +1,14 @@
-import express from 'express'
+import express from 'express';
 const router = express.Router({})
 
-import conn from './../db/db'
-import config from '../src/config'
-import sms_util from './../util/sms_util'
+import db from './../db/db';
+import config from '../src/config';
+import sms_util from './../util/sms_util';
 
-import svgCaptcha from 'svg-captcha'
-import md5 from 'blueimp-md5'
-import formidable from 'formidable'
-import {basename} from 'path'
+import svgCaptcha from 'svg-captcha';
+import md5 from 'blueimp-md5';
+import formidable from 'formidable';
+import {basename} from 'path';
 
 const S_KEY = '@WaLQ1314?.LqFtK.Com.#'; // 盐
 const users = {}; // 用户信息
@@ -16,7 +16,7 @@ let tmp_captcha = '';
 
 /* GET home page. */
 router.get('/', (req, res, next) => {
-    console.log(md5(md5("admin") + S_KEY))
+    console.log(md5(md5("admin") + S_KEY));
     res.render('index', {title: '医药商城'});
 });
 
@@ -26,15 +26,30 @@ router.get('/', (req, res, next) => {
  */
 router.get('/api/homecasual', (req, res) => {
     let sqlStr = 'SELECT * FROM homecasual';
-    conn.query(sqlStr, (error, results, fields) => {
-        if (error) {
-            res.json({err_code: 0, message: '请求轮播图数据失败'});
-            console.log(error);
-        } else {
-            results = JSON.parse(JSON.stringify(results));
-            res.json({success_code: 200, message: results});
-        }
-    });
+    // conn.query(sqlStr, (error, results, fields) => {
+    //     if (error) {
+    //         res.json({err_code: 0, message: '请求轮播图数据失败'});
+    //         console.log(error);
+    //     } else {
+    //         results = JSON.parse(JSON.stringify(results));
+    //         res.json({success_code: 200, message: results});
+    //     }
+    // });
+    db.serialize(() => {
+        // 添加数据
+        db.run('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)');
+        db.run(`INSERT INTO users (name) VALUES ('John')`);
+        db.all(sqlStr, [], (err, rows) => {
+            if (err) {
+                res.json({err_code: 0, message: '请求轮播图数据失败'});
+                console.log(error);
+            }
+            else {
+                results = JSON.parse(JSON.stringify(results));
+                res.json({success_code: 200, message: results});
+            }
+          });
+        });
 });
 
 /**
@@ -42,15 +57,28 @@ router.get('/api/homecasual', (req, res) => {
  */
 router.get('/api/category', (req, res) => {
     let sqlStr = 'SELECT * FROM category';
-    conn.query(sqlStr, (error, results, fields) => {
-        if (error) {
-            res.json({err_code: 0, message: '请求商品分类数据失败'});
-            console.log(error);
-        } else {
-            results = JSON.parse(JSON.stringify(results));
-            res.json({success_code: 200, message: results});
-        }
-    });
+    // conn.query(sqlStr, (error, results, fields) => {
+    //     if (error) {
+    //         res.json({err_code: 0, message: '请求商品分类数据失败'});
+    //         console.log(error);
+    //     } else {
+    //         results = JSON.parse(JSON.stringify(results));
+    //         res.json({success_code: 200, message: results});
+    //     }
+    // });
+
+    db.serialize(() => {
+        db.all(sqlStr, [], (err, rows) => {
+            if (err) {
+                res.json({err_code: 0, message: '请求商品分类数据失败'});
+                console.log(error);
+            }
+            else {
+                results = JSON.parse(JSON.stringify(results));
+                res.json({success_code: 200, message: results});
+            }
+          });
+        });
 });
 
 /**
@@ -69,14 +97,24 @@ router.post('/api/searchgoods', (req, res) => {
             sqlStr += " OR goods_name LIKE ";
         }
     });
-    conn.query(sqlStr, (error, results, fields) => {
-        results = JSON.parse(JSON.stringify(results));
-        if (!error && results.length) {
-            res.json({success_code: 200, message: results});
-        }else{
-            console.log(error);
-        }
-    });
+    // conn.query(sqlStr, (error, results, fields) => {
+    //     results = JSON.parse(JSON.stringify(results));
+    //     if (!error && results.length) {
+    //         res.json({success_code: 200, message: results});
+    //     }else{
+    //         console.log(error);
+    //     }
+    // });
+
+    db.serialize(() => {
+        db.all(sqlStr, [], (err, rows) => {
+            results = JSON.parse(JSON.stringify(results));
+            if (!error && results.length) {
+                res.json({success_code: 200, message: results});
+            }else{
+                console.log(error);
+            }
+        });
 });
 
 /**
@@ -91,15 +129,28 @@ router.get('/api/recommendshoplist', (req, res) => {
 
     let sqlStr = 'SELECT * FROM recommend WHERE category = ' + category + ' LIMIT ' + (pageNo - 1) * pageSize + ',' + pageSize;
 
-    conn.query(sqlStr, (error, results, fields) => {
-        if (error) {
-			console.log(error);
-            res.json({err_code: 0, message: '请求商品列表数据失败'});
-        } else {
-            results = JSON.parse(JSON.stringify(results));
-            res.json({success_code: 200, message: results});
-        }
-    });
+    // conn.query(sqlStr, (error, results, fields) => {
+    //     if (error) {
+	// 		console.log(error);
+    //         res.json({err_code: 0, message: '请求商品列表数据失败'});
+    //     } else {
+    //         results = JSON.parse(JSON.stringify(results));
+    //         res.json({success_code: 200, message: results});
+    //     }
+    // });
+
+    db.serialize(() => {
+        db.all(sqlStr, [], (err, rows) => {
+            if (err) {
+                console.log(error);
+                res.json({err_code: 0, message: '请求商品列表数据失败'});
+            }
+            else {
+                results = JSON.parse(JSON.stringify(results));
+                res.json({success_code: 200, message: results});
+            }
+          });
+        });
 });
 
 /**
@@ -109,15 +160,28 @@ router.get('/api/allgoods', (req, res) => {
 
     let sqlStr = 'SELECT * FROM recommend';
 
-    conn.query(sqlStr, (error, results, fields) => {
-        if (error) {
-			console.log(error);
-            res.json({err_code: 0, message: '请求商品数据失败'});
-        } else {
-            results = JSON.parse(JSON.stringify(results));
-            res.json({success_code: 200, message: results});
-        }
-    });
+    // conn.query(sqlStr, (error, results, fields) => {
+    //     if (error) {
+	// 		console.log(error);
+    //         res.json({err_code: 0, message: '请求商品数据失败'});
+    //     } else {
+    //         results = JSON.parse(JSON.stringify(results));
+    //         res.json({success_code: 200, message: results});
+    //     }
+    // });
+
+    db.serialize(() => {
+        db.all(sqlStr, [], (err, rows) => {
+            if (err) {
+                console.log(error);
+                res.json({err_code: 0, message: '请求商品数据失败'});
+            }
+            else {
+                results = JSON.parse(JSON.stringify(results));
+                res.json({success_code: 200, message: results});
+            }
+          });
+        });
 });
 
 /**
@@ -126,20 +190,37 @@ router.get('/api/allgoods', (req, res) => {
 router.get('/api/homeshoplist', (req, res) => {
     // 获取总分类
     let cateSqlStr = 'SELECT COUNT(*) FROM category';
-	conn.query(cateSqlStr, (error, results, fields) => {
-		if (!error) {
-            let sqlStr = '';
-            for(let i=0; i < results[0]['COUNT(*)']; i++){
-                sqlStr += 'SELECT * FROM recommend WHERE category = ' + (i+1) + ' LIMIT 3;';
-            }
-            conn.query(sqlStr, (error, results, fields) => {
-                if (!error) {
-                    results = JSON.parse(JSON.stringify(results));
-                    res.json({success_code: 200, message: results});
+	// conn.query(cateSqlStr, (error, results, fields) => {
+	// 	if (!error) {
+    //         let sqlStr = '';
+    //         for(let i=0; i < results[0]['COUNT(*)']; i++){
+    //             sqlStr += 'SELECT * FROM recommend WHERE category = ' + (i+1) + ' LIMIT 3;';
+    //         }
+    //         conn.query(sqlStr, (error, results, fields) => {
+    //             if (!error) {
+    //                 results = JSON.parse(JSON.stringify(results));
+    //                 res.json({success_code: 200, message: results});
+    //             }
+    //         });
+	// 	}
+	// });
+
+    db.serialize(() => {
+        db.all(cateSqlStr, [], (err, rows) => {
+            if (!error) {
+                let sqlStr = '';
+                for(let i=0; i < results[0]['COUNT(*)']; i++){
+                    sqlStr += 'SELECT * FROM recommend WHERE category = ' + (i+1) + ' LIMIT 3;';
                 }
-            });
-		}
-	});
+                db.all(sqlStr, [], (err, rows) => {
+                    if (!error) {
+                        results = JSON.parse(JSON.stringify(results));
+                        res.json({success_code: 200, message: results});
+                    }
+                });
+            }
+          });
+        });
 });
 
 /**
@@ -149,12 +230,21 @@ router.get('/api/goodsdetail', (req, res) => {
     // 获取参数
     let goodsNo = req.query.goodsNo;
 	let sqlStr = 'SELECT * FROM recommend WHERE goods_id = ' + goodsNo;
-	conn.query(sqlStr, (error, results, fields) => {
-		if (!error) {
-            results = JSON.parse(JSON.stringify(results));
-			res.json({success_code: 200, message: results});
-		}
-	});
+	// conn.query(sqlStr, (error, results, fields) => {
+	// 	if (!error) {
+    //         results = JSON.parse(JSON.stringify(results));
+	// 		res.json({success_code: 200, message: results});
+	// 	}
+	// });
+
+    db.serialize(() => {
+        db.all(sqlStr, [], (err, rows) => {
+            if (!error) {
+                results = JSON.parse(JSON.stringify(results));
+                res.json({success_code: 200, message: results});
+            }
+          });
+        });
 });
 
 /**
