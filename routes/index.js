@@ -295,19 +295,19 @@ router.post('/api/postcomment', (req, res) => {
 
     db.run(addSql, addSqlParams, function(err) {
         if (err) {
-          console.log(err);
+            console.log(err.message);
+            res.json({err_code: 0, message: '发布评论失败'});
         } else {
-          // 更新数据
-          const sqlStr = `UPDATE recommend SET comments_count = comments_count + 1 WHERE goods_id = ${goods_id}`;
-          db.run(sqlStr, [], function(err) {
-            if (err) {
-              console.log(err);
-            } else {
-              res.json({success_code: 200, message: '发布成功'});
-            }
-          });
+            let sqlStr = "UPDATE recommend SET comments_count = comments_count + 1 WHERE goods_id = " + goods_id;
+            db.run(sqlStr, function(err) {
+                if (err) {
+                    console.log(err.message);
+                } else {
+                    res.json({success_code: 200, message: "发布成功"});
+                }
+            });
         }
-      });
+    });
 });
 
 /**
@@ -374,51 +374,99 @@ router.post('/api/login_code', (req, res) => {
 
     let sqlStr = "SELECT * FROM user_info WHERE user_phone = '" + phone + "' LIMIT 1";
 
-    conn.query(sqlStr, (error, results, fields) => {
-        if (error) {
-            res.json({err_code: 0, message: '查询失败'});
-			console.log(error);
-        } else {
-            results = JSON.parse(JSON.stringify(results));
-            if (results[0]) {  // 用户已经存在
-                req.session.userId = results[0].id;
+    // conn.query(sqlStr, (error, results, fields) => {
+    //     if (error) {
+    //         res.json({err_code: 0, message: '查询失败'});
+	// 		console.log(error);
+    //     } else {
+    //         results = JSON.parse(JSON.stringify(results));
+    //         if (results[0]) {  // 用户已经存在
+    //             req.session.userId = results[0].id;
                 
+    //             res.json({
+    //                 success_code: 200,
+    //                 message: {
+	// 					id: results[0].id,
+    //                     user_name: results[0].user_name,
+    //                     user_nickname: results[0].user_nickname || '',
+    //                     user_phone: results[0].user_phone,
+	// 					user_sex: results[0].user_sex,
+	// 					user_address: results[0].user_address,
+	// 					user_sign: results[0].user_sign,
+    //                     user_birthday: results[0].user_birthday,
+    //                     user_avatar: results[0].user_avatar
+	// 				}
+    //             });
+    //         } else { // 新用户
+    //             const addSql = "INSERT INTO user_info(user_name, user_phone, user_avatar) VALUES (?, ?, ?)";
+    //             const addSqlParams = [phone, phone, 'http://localhost:' + config.port + '/avatar_uploads/avatar_default.jpg'];  // 手机验证码注册，默认用手机号充当用户名
+    //             conn.query(addSql, addSqlParams, (error, results, fields) => {
+    //                 results = JSON.parse(JSON.stringify(results));
+    //                 if (!error) {
+    //                     req.session.userId = results.insertId;
+    //                     let sqlStr = "SELECT * FROM user_info WHERE id = '" + results.insertId + "' LIMIT 1";
+    //                     conn.query(sqlStr, (error, results, fields) => {
+    //                         if (error) {
+    //                             res.json({err_code: 0, message: '注册失败'});
+    //                             console.log(error);
+    //                         } else {
+    //                             results = JSON.parse(JSON.stringify(results));
+                                
+    //                             res.json({
+    //                                 success_code: 200,
+    //                                 message: {
+    //                                     id: results[0].id,
+    //                                     user_name: results[0].user_name,
+    //                                     user_phone: results[0].user_phone,
+    //                                     user_avatar: results[0].user_avatar
+    //                                 }
+    //                             });
+    //                         }
+    //                     });
+    //                 }
+    //             });
+    //         }
+    //     }
+    // });
+
+    db.all(sqlStr, [phone], (err, rows) => {
+        if (!err) {
+            rows = JSON.parse(JSON.stringify(rows));
+            if (rows[0]) {  // 用户已经存在
+                req.session.userId = rows[0].id;
+
                 res.json({
                     success_code: 200,
                     message: {
-						id: results[0].id,
-                        user_name: results[0].user_name,
-                        user_nickname: results[0].user_nickname || '',
-                        user_phone: results[0].user_phone,
-						user_sex: results[0].user_sex,
-						user_address: results[0].user_address,
-						user_sign: results[0].user_sign,
-                        user_birthday: results[0].user_birthday,
-                        user_avatar: results[0].user_avatar
-					}
+                        id: rows[0].id,
+                        user_name: rows[0].user_name,
+                        user_nickname: rows[0].user_nickname || '',
+                        user_phone: rows[0].user_phone,
+                        user_sex: rows[0].user_sex,
+                        user_address: rows[0].user_address,
+                        user_sign: rows[0].user_sign,
+                        user_birthday: rows[0].user_birthday,
+                        user_avatar: rows[0].user_avatar
+                    }
                 });
             } else { // 新用户
                 const addSql = "INSERT INTO user_info(user_name, user_phone, user_avatar) VALUES (?, ?, ?)";
                 const addSqlParams = [phone, phone, 'http://localhost:' + config.port + '/avatar_uploads/avatar_default.jpg'];  // 手机验证码注册，默认用手机号充当用户名
-                conn.query(addSql, addSqlParams, (error, results, fields) => {
-                    results = JSON.parse(JSON.stringify(results));
-                    if (!error) {
-                        req.session.userId = results.insertId;
-                        let sqlStr = "SELECT * FROM user_info WHERE id = '" + results.insertId + "' LIMIT 1";
-                        conn.query(sqlStr, (error, results, fields) => {
-                            if (error) {
-                                res.json({err_code: 0, message: '注册失败'});
-                                console.log(error);
-                            } else {
-                                results = JSON.parse(JSON.stringify(results));
-                                
+                db.run(addSql, addSqlParams, function(err) {
+                    if (!err) {
+                        req.session.userId = this.lastID;
+                        const sqlStr = "SELECT * FROM user_info WHERE id = ? LIMIT 1";
+                        db.all(sqlStr, [this.lastID], (err, rows) => {
+                            if (!err) {
+                                rows = JSON.parse(JSON.stringify(rows));
+
                                 res.json({
                                     success_code: 200,
                                     message: {
-                                        id: results[0].id,
-                                        user_name: results[0].user_name,
-                                        user_phone: results[0].user_phone,
-                                        user_avatar: results[0].user_avatar
+                                        id: rows[0].id,
+                                        user_name: rows[0].user_name,
+                                        user_phone: rows[0].user_phone,
+                                        user_avatar: rows[0].user_avatar
                                     }
                                 });
                             }
@@ -428,7 +476,6 @@ router.post('/api/login_code', (req, res) => {
             }
         }
     });
-
 });
 
 /**
@@ -452,11 +499,72 @@ router.post('/api/login_pwd', (req, res) => {
     
     // 查询数据
     let sqlStr = "SELECT * FROM user_info WHERE user_name = '" + user_name + "' LIMIT 1";
-    conn.query(sqlStr, (error, results, fields) => {
-        if (error) {
+    // conn.query(sqlStr, (error, results, fields) => {
+    //     if (error) {
+    //         res.json({err_code: 0, message: '用户名不正确!'});
+    //     } else {
+    //         results = JSON.parse(JSON.stringify(results));
+
+    //         if (results[0]) {  // 用户已经存在
+    //             // 验证密码是否正确
+    //             if (results[0].user_pwd !== user_pwd) {
+    //                 res.json({err_code: 0, message: '密码不正确!'});
+    //             } else {
+    //                 req.session.userId = results[0].id;
+                    
+    //                 res.json({
+    //                     success_code: 200,
+    //                     message: {
+    //                         id: results[0].id,
+    //                         user_name: results[0].user_name || '',
+    //                         user_nickname: results[0].user_nickname || '',
+    //                         user_phone: results[0].user_phone || '',
+	// 						user_sex: results[0].user_sex || '',
+	// 						user_address: results[0].user_address || '',
+	// 						user_sign: results[0].user_sign || '',
+	// 						user_birthday: results[0].user_birthday || '',
+    //                         user_avatar: results[0].user_avatar || ''
+    //                     },
+    //                     info: '登录成功!'
+    //                 });
+    //             }
+    //         } else { // 新用户
+    //             const addSql = "INSERT INTO user_info(user_name, user_pwd, user_avatar) VALUES (?, ?, ?)";
+    //             const addSqlParams = [user_name, user_pwd, 'http://localhost:' + config.port + '/avatar_uploads/avatar_default.jpg'];
+    //             conn.query(addSql, addSqlParams, (error, results, fields) => {
+    //                 results = JSON.parse(JSON.stringify(results));
+    //                 if (!error) {
+    //                     req.session.userId = results.insertId;
+    //                     let sqlStr = "SELECT * FROM user_info WHERE id = '" + results.insertId + "' LIMIT 1";
+    //                     conn.query(sqlStr, (error, results, fields) => {
+    //                         if (error) {
+    //                             res.json({err_code: 0, message: '注册失败'});
+    //                         } else {
+    //                             results = JSON.parse(JSON.stringify(results));
+                                
+    //                             res.json({
+    //                                 success_code: 200,
+    //                                 message: {
+    //                                     id: results[0].id,
+    //                                     user_name: results[0].user_name || '',
+    //                                     user_nickname: results[0].user_nickname || '',
+    //                                     user_avatar: results[0].user_avatar || ''
+    //                                 }
+    //                             });
+    //                         }
+    //                     });
+    //                 }
+    //             });
+    //         }
+    //     }
+    // });
+
+    db.all(sqlStr, [], (err, rows) => {
+        if (err) {
             res.json({err_code: 0, message: '用户名不正确!'});
+            console.log(err);
         } else {
-            results = JSON.parse(JSON.stringify(results));
+            const results = JSON.parse(JSON.stringify(rows));
 
             if (results[0]) {  // 用户已经存在
                 // 验证密码是否正确
@@ -464,7 +572,7 @@ router.post('/api/login_pwd', (req, res) => {
                     res.json({err_code: 0, message: '密码不正确!'});
                 } else {
                     req.session.userId = results[0].id;
-                    
+
                     res.json({
                         success_code: 200,
                         message: {
@@ -472,10 +580,10 @@ router.post('/api/login_pwd', (req, res) => {
                             user_name: results[0].user_name || '',
                             user_nickname: results[0].user_nickname || '',
                             user_phone: results[0].user_phone || '',
-							user_sex: results[0].user_sex || '',
-							user_address: results[0].user_address || '',
-							user_sign: results[0].user_sign || '',
-							user_birthday: results[0].user_birthday || '',
+                            user_sex: results[0].user_sex || '',
+                            user_address: results[0].user_address || '',
+                            user_sign: results[0].user_sign || '',
+                            user_birthday: results[0].user_birthday || '',
                             user_avatar: results[0].user_avatar || ''
                         },
                         info: '登录成功!'
@@ -484,17 +592,20 @@ router.post('/api/login_pwd', (req, res) => {
             } else { // 新用户
                 const addSql = "INSERT INTO user_info(user_name, user_pwd, user_avatar) VALUES (?, ?, ?)";
                 const addSqlParams = [user_name, user_pwd, 'http://localhost:' + config.port + '/avatar_uploads/avatar_default.jpg'];
-                conn.query(addSql, addSqlParams, (error, results, fields) => {
-                    results = JSON.parse(JSON.stringify(results));
-                    if (!error) {
-                        req.session.userId = results.insertId;
-                        let sqlStr = "SELECT * FROM user_info WHERE id = '" + results.insertId + "' LIMIT 1";
-                        conn.query(sqlStr, (error, results, fields) => {
-                            if (error) {
+                db.run(addSql, addSqlParams, function(err) {
+                    if (err) {
+                        res.json({err_code: 0, message: '注册失败'});
+                        console.log(err);
+                    } else {
+                        req.session.userId = this.lastID;
+                        let sqlStr = "SELECT * FROM user_info WHERE id = '" + this.lastID + "' LIMIT 1";
+                        db.all(sqlStr, [], (err, rows) => {
+                            if (err) {
                                 res.json({err_code: 0, message: '注册失败'});
+                                console.log(err);
                             } else {
-                                results = JSON.parse(JSON.stringify(results));
-                                
+                                const results = JSON.parse(JSON.stringify(rows));
+
                                 res.json({
                                     success_code: 200,
                                     message: {
@@ -521,32 +632,34 @@ router.get('/api/user_info', (req, res) => {
    let userId = req.query.user_id || req.session.userId;
    
     let sqlStr = "SELECT * FROM user_info WHERE id = " + userId + " LIMIT 1";
-    conn.query(sqlStr, (error, results, fields) => {
-        if (error) {
-            res.json({err_code: 0, message: '请求用户数据失败'});
-        } else {
-            results = JSON.parse(JSON.stringify(results));
-            if (!results[0]) {
-                delete req.session.userId;
-                res.json({error_code: 1, message: '请先登录'});
-            } else {
-                res.json({
-                    success_code: 200,
-                    message: {
-                        id: results[0].id,
-                        user_name: results[0].user_name || '',
-                        user_nickname: results[0].user_nickname || '',
-                        user_phone: results[0].user_phone || '',
-                        user_sex: results[0].user_sex || '',
-                        user_address: results[0].user_address || '',
-                        user_sign: results[0].user_sign || '',
-                        user_birthday: results[0].user_birthday || '',
-                        user_avatar: results[0].user_avatar || ''
-                    },
-                });
-            }
-        }
-    });
+    // conn.query(sqlStr, (error, results, fields) => {
+    //     if (error) {
+    //         res.json({err_code: 0, message: '请求用户数据失败'});
+    //     } else {
+    //         results = JSON.parse(JSON.stringify(results));
+    //         if (!results[0]) {
+    //             delete req.session.userId;
+    //             res.json({error_code: 1, message: '请先登录'});
+    //         } else {
+    //             res.json({
+    //                 success_code: 200,
+    //                 message: {
+    //                     id: results[0].id,
+    //                     user_name: results[0].user_name || '',
+    //                     user_nickname: results[0].user_nickname || '',
+    //                     user_phone: results[0].user_phone || '',
+    //                     user_sex: results[0].user_sex || '',
+    //                     user_address: results[0].user_address || '',
+    //                     user_sign: results[0].user_sign || '',
+    //                     user_birthday: results[0].user_birthday || '',
+    //                     user_avatar: results[0].user_avatar || ''
+    //                 },
+    //             });
+    //         }
+    //     }
+    // });
+
+    
 });
 
 /**
