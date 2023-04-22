@@ -1,16 +1,16 @@
-import express from 'express'
-import config from './config'
-import indexRouter from '../routes/index'
+import express from 'express';
+import config from './config';
+import indexRouter from '../routes/index';
 
-import createError from 'http-errors'
-import cookieParser from 'cookie-parser'
-import logger from 'morgan'
-import session from 'express-session'
+import createError from 'http-errors';
+import cookieParser from 'cookie-parser';
+import logger from 'morgan';
+import session from 'express-session';
 
 const app = express();
 
 // 使用cors解决跨域问题
-import cors from 'cors'
+import cors from 'cors';
 app.use(cors());
 
 app.use(cookieParser());

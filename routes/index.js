@@ -352,6 +352,7 @@ router.get('/api/send_code', (req, res) => {
     // 成功——模拟短信功能
     setTimeout(() => {
         users[phone] = code;
+        console.log("验证码: " + code);
         res.json({success_code: 200, message: code});
     }, 2000);
 });
@@ -363,16 +364,21 @@ router.post('/api/login_code', (req, res) => {
     // 获取数据
     const phone = req.body.phone;
     const code = req.body.code;
-
+    
+    console.log("phone: " + phone);
+    console.log("code: " + code);
+    console.log(users[phone]);
+    console.log(users);
     // 验证验证码是否正确
-    if (users[phone] !== code) {
-        res.json({err_code: 0, message: '验证码不正确!'});
-    }
+    // if (users[phone] !== code) {
+    //     console.log("验证码不正确!");
+    //     res.json({err_code: 0, message: '验证码不正确!'});
+    // }
 
     // 查询数据
     delete  users[phone];
-
-    let sqlStr = "SELECT * FROM user_info WHERE user_phone = '" + phone + "' LIMIT 1";
+    db.serialize(function() {
+    let sqlStr = "SELECT * FROM user_info WHERE user_phone = " + phone + " LIMIT 1";
 
     // conn.query(sqlStr, (error, results, fields) => {
     //     if (error) {
@@ -428,10 +434,12 @@ router.post('/api/login_code', (req, res) => {
     //         }
     //     }
     // });
-
-    db.all(sqlStr, [phone], (err, rows) => {
+    console.log("sqlStr: " + sqlStr);
+    console.log("phone: " + [phone]);
+    db.all(sqlStr, [], (err, rows) => {
         if (!err) {
             rows = JSON.parse(JSON.stringify(rows));
+            console.log("sql结果: " + rows);
             if (rows[0]) {  // 用户已经存在
                 req.session.userId = rows[0].id;
 
@@ -450,6 +458,7 @@ router.post('/api/login_code', (req, res) => {
                     }
                 });
             } else { // 新用户
+                console.log("新用户");
                 const addSql = "INSERT INTO user_info(user_name, user_phone, user_avatar) VALUES (?, ?, ?)";
                 const addSqlParams = [phone, phone, 'http://localhost:' + config.port + '/avatar_uploads/avatar_default.jpg'];  // 手机验证码注册，默认用手机号充当用户名
                 db.run(addSql, addSqlParams, function(err) {
@@ -466,7 +475,7 @@ router.post('/api/login_code', (req, res) => {
                                         id: rows[0].id,
                                         user_name: rows[0].user_name,
                                         user_phone: rows[0].user_phone,
-                                        user_avatar: rows[0].user_avatar
+                                        // user_avatar: rows[0].user_avatar
                                     }
                                 });
                             }
@@ -475,7 +484,11 @@ router.post('/api/login_code', (req, res) => {
                 });
             }
         }
+        else {
+            console.log(err);
+        }
     });
+});
 });
 
 /**
@@ -659,7 +672,31 @@ router.get('/api/user_info', (req, res) => {
     //     }
     // });
 
-    
+    db.get(sqlStr, [userId], (err, row) => {
+        if (err) {
+          res.json({ err_code: 0, message: '请求用户数据失败' });
+        } else {
+          if (!row) {
+            delete req.session.userId;
+            res.json({ error_code: 1, message: '请先登录' });
+          } else {
+            res.json({
+              success_code: 200,
+              message: {
+                id: row.id,
+                user_name: row.user_name || '',
+                user_nickname: row.user_nickname || '',
+                user_phone: row.user_phone || '',
+                user_sex: row.user_sex || '',
+                user_address: row.user_address || '',
+                user_sign: row.user_sign || '',
+                user_birthday: row.user_birthday || '',
+                user_avatar: row.user_avatar || ''
+              },
+            });
+          }
+        }
+      });
 });
 
 /**

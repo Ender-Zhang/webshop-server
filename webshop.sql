@@ -1,3 +1,4 @@
+-- Active: 1682100850269@@127.0.0.1@3306
 -- Administrators table
 DROP TABLE IF EXISTS administrators;
 CREATE TABLE administrators (
