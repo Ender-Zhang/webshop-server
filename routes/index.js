@@ -2,7 +2,7 @@ import express from 'express';
 const router = express.Router({});
 
 import db from './../db/sqlite';
-import conn from './../db/db';
+// import conn from './../db/db';
 import config from '../src/config';
 import sms_util from './../util/sms_util';
 
@@ -250,22 +250,22 @@ router.get('/api/goodsdetail', (req, res) => {
     // 获取参数
     let goodsNo = req.query.goodsNo;
 	let sqlStr = 'SELECT * FROM recommend WHERE goods_id = ' + goodsNo;
-	conn.query(sqlStr, (error, results, fields) => {
-		if (!error) {
-            results = JSON.parse(JSON.stringify(results));
-			res.json({success_code: 200, message: results});
-		}
-	});
+	// conn.query(sqlStr, (error, results, fields) => {
+	// 	if (!error) {
+	// results = JSON.parse(JSON.stringify(results));
+	// 		res.json({success_code: 200, message: results});
+	// 	}
+	// });
 
-//     db.all(sqlStr, [], (err, rows) => {
-//         if (err) {
-//             console.log(err);
-//             res.json({ err_code: 0, message: '请求推荐商品数据失败' });
-//         } else {
-//             results = JSON.parse(JSON.stringify(rows));
-//             res.json({ success_code: 200, message: results });
-//         }
-// });
+    db.all(sqlStr, [], (err, rows) => {
+        if (err) {
+            console.log(err);
+            res.json({ err_code: 0, message: '请求推荐商品数据失败' });
+        } else {
+            let results = JSON.parse(JSON.stringify(rows));
+            res.json({ success_code: 200, message: results });
+        }
+});
 
 });
 
@@ -276,14 +276,14 @@ router.get('/api/goodscomment', (req, res) => {
     // 获取参数
     let goodsId = req.query.goodsId;
 
-	let sqlStr = 'SELECT user_info.id, user_info.user_name, user_info.user_nickname, comments.comment_detail, comments.comment_id, comments.comment_rating, comments.goods_id FROM user_info INNER JOIN comments ON user_info.id = comments.user_id WHERE goods_id = ' + goodsId;
+	// let sqlStr = 'SELECT user_info.id, user_info.user_name, user_info.user_nickname, comments.comment_detail, comments.comment_id, comments.comment_rating, comments.goods_id FROM user_info INNER JOIN comments ON user_info.id = comments.user_id WHERE goods_id = ' + goodsId;
 	// conn.query(sqlStr, (error, results, fields) => {
 	// 	if (!error) {
     //         results = JSON.parse(JSON.stringify(results));
 	// 		res.json({success_code: 200, message: results});
 	// 	}
 	// });
-
+    let sqlStr = 'SELECT user_info.id, user_info.user_name, user_info.user_nickname, comments.comment_detail, comments.comment_id, comments.comment_rating, comments.goods_id FROM user_info INNER JOIN comments ON user_info.id = comments.user_id WHERE goods_id = ?';
     db.all(sqlStr, [goodsId], (err, rows) => {
         if (err) {
             console.log(err);
@@ -522,20 +522,22 @@ router.post('/api/login_code', (req, res) => {
  * 用户名和密码登录
  */
 router.post('/api/login_pwd', (req, res) => {
-	// console.log(req.session.captcha);
-	// console.log(tmp_captcha);
+	console.log("123",req.session.captcha);
+	console.log("456",tmp_captcha);
+  console.log("name",req.body.name);
+  console.log("pwd", req.body.pwd);
     // 获取数据
 	const user_name = req.body.name;
     const user_pwd = md5(md5(req.body.pwd) + S_KEY);
     const captcha = req.body.captcha.toLowerCase();
 
     // 验证图形验证码是否正确
-    if (captcha !== tmp_captcha) {
-        res.json({err_code: 0, message: '图形验证码不正确!'});
-        return;
-    }
+    // if (captcha !== tmp_captcha) {
+    //     res.json({err_code: 0, message: '图形验证码不正确!'});
+    //     return;
+    // }
 
-    tmp_captcha = '';
+    // tmp_captcha = '';
     
     // 查询数据
     let sqlStr = "SELECT * FROM user_info WHERE user_name = '" + user_name + "' LIMIT 1";
@@ -600,6 +602,7 @@ router.post('/api/login_pwd', (req, res) => {
     // });
 
     db.all(sqlStr, [], (err, rows) => {
+
         if (err) {
             res.json({err_code: 0, message: '用户名不正确!'});
             console.log(err);
@@ -607,9 +610,14 @@ router.post('/api/login_pwd', (req, res) => {
             const results = JSON.parse(JSON.stringify(rows));
 
             if (results[0]) {  // 用户已经存在
+
                 // 验证密码是否正确
                 if (results[0].user_pwd !== user_pwd) {
-                    res.json({err_code: 0, message: '密码不正确!'});
+                    console.log(".......");
+                    console.log("rpwd",results[0].user_pwd);
+                    console.log("pwd",user_pwd);
+                    console.log("密码不正确");
+                    res.json({err_code: 0, message: '密码不正确!', info:"密码不正确！"});
                 } else {
                     req.session.userId = results[0].id;
 
@@ -645,14 +653,15 @@ router.post('/api/login_pwd', (req, res) => {
                                 console.log(err);
                             } else {
                                 const results = JSON.parse(JSON.stringify(rows));
-
+                                console.log("注册成功！")
                                 res.json({
                                     success_code: 200,
                                     message: {
                                         id: results[0].id,
                                         user_name: results[0].user_name || '',
                                         user_nickname: results[0].user_nickname || '',
-                                        user_avatar: results[0].user_avatar || ''
+                                        // user_avatar: results[0].user_avatar || '',
+                                        user_avatar: "https://team-rolls-royce-backend.glitch.me/avatar_uploads/avatar_default.jpg"
                                     }
                                 });
                             }
@@ -707,6 +716,7 @@ router.get('/api/user_info', (req, res) => {
             delete req.session.userId;
             res.json({ error_code: 1, message: '请先登录' });
           } else {
+            console.log("用户信息：",row);
             res.json({
               success_code: 200,
               message: {
@@ -865,54 +875,102 @@ router.post('/api/delete_goods', (req, res) => {
 /**
  * 修改用户信息 
  */
-router.post('/api/change_user_msg', (req, res) => {
-    // 获取客户端传过来的商品信息
-	const form = new formidable.IncomingForm();
-    form.uploadDir = config.uploadsAvatarPath;  // 上传图片放置的文件夹
-    form.keepExtensions = true; // 保持文件的原始扩展名
-    form.parse(req, (err, fields, files)=>{
-        if(err){
+// router.post('/api/change_user_msg', (req, res) => {
+//     // 获取客户端传过来的商品信息
+// 	const form = new formidable.IncomingForm();
+   
+//     form.uploadDir = config.uploadsAvatarPath; // 上传图片放置的文件夹
+//     form.keepExtensions = true; // 保持文件的原始扩展名
+
+//     form.parse(req, (err, fields, files) => {
+//         if (err) {
+//             return next(err);
+//         }
+// 		let id = fields.id;
+//         let user_nickname = fields.user_nickname || '';
+//         let user_sex = fields.user_sex || '';
+//         let user_address = fields.user_address || '';
+//         let user_birthday = fields.user_birthday || '';
+//         let user_sign = fields.user_sign || '';
+//         let user_avatar = 'http://localhost:' + config.port + '/avatar_uploads/avatar_default.jpg';
+//         if(files.user_avatar){
+//             user_avatar = 'http://localhost:' + config.port + '/avatar_uploads/' + basename(files.user_avatar.path); 
+//         }
+
+//         // 验证
+//         if (!id) {
+//             res.json({err_code: 0, message: '修改用户信息失败!'});
+//         }
+
+//         // 更新数据
+//         let sqlStr = "UPDATE user_info SET user_nickname = ? , user_sex = ?, user_address = ?, user_birthday = ?, user_sign = ?, user_avatar = ? WHERE id = " + id;
+//         let strParams = [user_nickname, user_sex, user_address, user_birthday, user_sign, user_avatar];
+//     //     conn.query(sqlStr, strParams, (error, results, fields) => {
+//     //         if (error) {
+//     //             console.log(error);
+//     //             res.json({err_code: 0, message: '修改用户信息失败!'});
+//     //         } else {
+//     //             res.json({success_code: 200, message: '修改用户信息成功!'});
+//     //         }
+//     //     });
+//     // });
+//     db.run(sqlStr, strParams, (error) => {
+//         if (error) {
+//             console.log(error);
+//             res.json({err_code: 0, message: '修改用户信息失败!'});
+//         } else {
+//             res.json({success_code: 200, message: '修改用户信息成功!'});
+//         }
+//     });
+// });
+// });
+router.post('/api/change_user_msg', (req, res, next) => {
+    const form = new formidable.IncomingForm();
+    form.uploadDir = config.uploadsAvatarPath;
+    form.keepExtensions = true;
+
+    form.parse(req, (err, fields, files) => {
+        if (err) {
             return next(err);
         }
-		let id = fields.id;
+        let id = fields.id;
         let user_nickname = fields.user_nickname || '';
         let user_sex = fields.user_sex || '';
         let user_address = fields.user_address || '';
         let user_birthday = fields.user_birthday || '';
         let user_sign = fields.user_sign || '';
-        let user_avatar = 'http://localhost:' + config.port + '/avatar_uploads/avatar_default.jpg';
-        if(files.user_avatar){
-            user_avatar = 'http://localhost:' + config.port + '/avatar_uploads/' + basename(files.user_avatar.path); 
-        }
+//         let user_avatar = 'http://localhost:' + config.port + '/avatar_uploads/avatar_default.jpg';
 
-        // 验证
+//         if (files.user_avatar) {
+//             user_avatar = 'http://localhost:' + config.port + '/avatar_uploads/' + path.basename(files.user_avatar.path);
+//         }
+      
+      console.log("user:", user_nickname);
+
         if (!id) {
-            res.json({err_code: 0, message: '修改用户信息失败!'});
+            res.json({ err_code: 0, message: 'Failure to modify user information!' });
         }
 
-        // 更新数据
-        let sqlStr = "UPDATE user_info SET user_nickname = ? , user_sex = ?, user_address = ?, user_birthday = ?, user_sign = ?, user_avatar = ? WHERE id = " + id;
-        let strParams = [user_nickname, user_sex, user_address, user_birthday, user_sign, user_avatar];
-    //     conn.query(sqlStr, strParams, (error, results, fields) => {
-    //         if (error) {
-    //             console.log(error);
-    //             res.json({err_code: 0, message: '修改用户信息失败!'});
-    //         } else {
-    //             res.json({success_code: 200, message: '修改用户信息成功!'});
-    //         }
-    //     });
-    // });
-    db.run(sqlStr, strParams, (error) => {
-        if (error) {
-            console.log(error);
-            res.json({err_code: 0, message: '修改用户信息失败!'});
-        } else {
-            res.json({success_code: 200, message: '修改用户信息成功!'});
-        }
+        let sqlStr = "UPDATE user_info SET user_nickname = ? , user_sex = ?, user_address = ?, user_birthday = ?, user_sign = ? WHERE id = " + id;
+        let strParams = [user_nickname, user_sex, user_address, user_birthday, user_sign];
+        db.run(sqlStr, strParams, (error) => {
+            if (error) {
+                console.log(error);
+                res.json({ err_code: 0, message: 'Failure to modify user information!' });
+            } else {
+                // db.all('Select * from user_info where id= 8', (error, rows) => {
+                //       if (error) {
+                //         console.log('Error fetching users:', error.message);
+                //       } else {
+                //         console.log('Users:', rows);
+                //       }
+                //     });
+                
+                res.json({ success_code: 200, message: 'Modify user information successfully!' });
+            }
+        });
     });
 });
-});
-
 /**
  * 修改用户密码
  */
